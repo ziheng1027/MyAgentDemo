@@ -38,15 +38,6 @@ class MCPClient:
                 env={}
             )
         
-        if self.server_name == "pixabay":
-            return MCPConfig(
-                command="npx.cmd",
-                args=["pixabay-mcp@latest"],
-                env={
-                    "PIXABAY_API_KEY": self.settings.pixabay_api_key or ""
-                }
-            )
-        
         raise ValueError("不支持的 MCP 服务")
     
     def get_server_params(self) -> StdioServerParameters:
