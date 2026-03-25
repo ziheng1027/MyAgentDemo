@@ -1,5 +1,3 @@
-"""项目配置读取与归一化。"""
-
 from __future__ import annotations
 
 from functools import lru_cache
@@ -8,7 +6,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    """全局配置对象。"""
+    """全局配置对象"""
 
     # pydantic v2固定使用model_config属性
     model_config = SettingsConfigDict(
@@ -34,6 +32,6 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
-    """缓存配置，避免重复读取环境变量。"""
+    """缓存配置, 避免重复读取环境变量"""
 
     return Settings()

@@ -5,7 +5,7 @@ from config.settings import get_settings
 
 
 class LLMConfig(BaseModel):
-    """统一的 LLM 连接配置。"""
+    """统一的 LLM 连接配置"""
 
     provider: str
     base_url: str
@@ -13,7 +13,7 @@ class LLMConfig(BaseModel):
 
 
 class LLMClient:
-    """LLM 客户端类，负责根据配置创建模型实例。"""
+    """LLM 客户端类，负责根据配置创建模型实例"""
 
     def __init__(self, provider: str, temperature: float = 0.7, timeout: int = 30) -> None:
         self.settings = get_settings()
@@ -43,7 +43,7 @@ class LLMClient:
         return config
 
     def get_llm(self, llm_name: str) -> ChatOpenAI:
-        """返回统一配置的聊天模型实例。"""
+        """返回统一配置的聊天模型实例"""
 
         config = self.get_config()
         self.llm_name = llm_name
