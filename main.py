@@ -1,22 +1,19 @@
 import asyncio
-import json
-
-from client.mcp_client import MCPClient
-from services.mcp_service import (
-    get_weather, 
-    get_pois, 
-    get_distance,
-    get_text_content, 
-    tavily_search
-)
+from agents.sample_agent import sample_agent
 
 
 async def main():
-    result = await tavily_search(query="武汉旅行路线推荐", max_results=2)
-    print(result)
-    print(type(result))
-
+    response = await sample_agent.ainvoke(
+        {
+            "messages": [
+                {
+                    "role": "user", 
+                    "content": "湖北省武汉市武汉轻工大学到湖北省武汉市汉口站的距离有多远？"
+                }
+            ]
+        }
+    )
+    print(response)
 
 if __name__ == "__main__":
-    
     asyncio.run(main())

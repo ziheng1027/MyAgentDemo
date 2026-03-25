@@ -19,6 +19,7 @@ def get_text_content(result) -> str:
 
     first_item = result.content[0]
     text = getattr(first_item, "text", "").strip()
+
     return text
 
 
@@ -35,6 +36,7 @@ async def call_mcp_tool(server_name: str, tool_name: str, arguments: dict | None
     """
 
     client = MCPClient(server_name=server_name)
+
     return await client.call_tool(tool_name, arguments or {})
 
 
@@ -123,6 +125,39 @@ async def get_pois(keywords: str, city: str) -> list[dict]:
     ]
 
 
+async def get_location(address: str) -> dict:
+    """根据地点名称或结构化地址获取经纬度坐标
+
+    适用场景：
+        - 用户提供地点名称，希望获取该地点的经纬度坐标。
+        - 在计算距离之前，先把自然语言地址转换为经纬度坐标。
+
+    Args:
+        address (str): 待解析的地点名称或结构化地址，例如 `湖北省武汉市黄鹤楼`、`北京市朝阳区望京SOHO`。
+
+    Returns:
+        dict: 精简后的坐标结果，格式为：
+        {
+            "country": "中国",
+            "province": "湖北省",
+            "city": "武汉市",
+            "district": "武昌区",
+            "location": "114.3063,30.5478"
+        }
+    """
+
+    result = await call_mcp_tool("amap", "maps_geo", {"address": address})
+    text = get_text_content(result)
+    data = json.loads(text)["return"][0]
+    
+    return {
+        "country": data.get("country", ""),
+        "province": data.get("province", ""),
+        "city": data.get("city", ""),
+        "district": data.get("district", ""),
+        "location": data.get("location", ""),
+    }
+
 @tool
 async def get_distance(origins: str, destination: str) -> dict:
     """测量两个经纬度坐标之间的距离并返回结果。
@@ -148,6 +183,7 @@ async def get_distance(origins: str, destination: str) -> dict:
     )
     text = get_text_content(result)
     data = json.loads(text)
+
     return data.get("results", [{}])[0]
 
 
@@ -180,6 +216,7 @@ async def tavily_search(query: str, max_results: int = 5) -> dict:
     )
     text = get_text_content(result)
     data = json.loads(text)
+
     return {
         "query": data.get("query", ""),
         "results": [

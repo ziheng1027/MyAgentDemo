@@ -16,9 +16,6 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8"
     )
 
-    llm_provider: str = Field(default="deepseek", alias="LLM_PROVIDER")
-    llm_name: str = Field(default="deepseek-chat", alias="LLM_NAME")
-
     zhipu_base_url: str | None = Field(default=None, alias="ZHIPU_BASE_URL")
     zhipu_api_key: str | None = Field(default=None, alias="ZHIPU_API_KEY")
 
