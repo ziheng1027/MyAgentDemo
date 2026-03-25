@@ -125,12 +125,9 @@ async def get_pois(keywords: str, city: str) -> list[dict]:
     ]
 
 
+@tool
 async def get_location(address: str) -> dict:
-    """根据地点名称或结构化地址获取经纬度坐标
-
-    适用场景：
-        - 用户提供地点名称，希望获取该地点的经纬度坐标。
-        - 在计算距离之前，先把自然语言地址转换为经纬度坐标。
+    """根据地点名称或结构化地址获取经纬度坐标，地点最好带有必要前缀（如城市、行政区）以确保唯一性。
 
     Args:
         address (str): 待解析的地点名称或结构化地址，例如 `湖北省武汉市黄鹤楼`、`北京市朝阳区望京SOHO`。
@@ -148,8 +145,8 @@ async def get_location(address: str) -> dict:
 
     result = await call_mcp_tool("amap", "maps_geo", {"address": address})
     text = get_text_content(result)
-    data = json.loads(text)["return"][0]
-    
+    data = json.loads(text).get("return", [{}])[0]
+
     return {
         "country": data.get("country", ""),
         "province": data.get("province", ""),
@@ -157,6 +154,7 @@ async def get_location(address: str) -> dict:
         "district": data.get("district", ""),
         "location": data.get("location", ""),
     }
+
 
 @tool
 async def get_distance(origins: str, destination: str) -> dict:

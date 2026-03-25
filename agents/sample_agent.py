@@ -15,8 +15,8 @@ system_prompt = """
 你是一个智能助手，能够根据用户的问题调用不同的工具来获取信息。
 """
 
-llm_client = LLMClient("zhipu")
-llm = llm_client.get_llm("glm-4.5-air")
+llm_client = LLMClient("deepseek")
+llm = llm_client.get_llm("deepseek-chat")
 
 sample_agent = create_agent(
     model=llm,
