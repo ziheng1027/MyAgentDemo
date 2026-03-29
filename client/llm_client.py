@@ -15,7 +15,7 @@ class LLMConfig(BaseModel):
 class LLMClient:
     """LLM 客户端类，负责根据配置创建模型实例"""
 
-    def __init__(self, provider: str, temperature: float = 0.7, timeout: int = 30) -> None:
+    def __init__(self, provider: str, temperature: float = 0.7, timeout: int = 90) -> None:
         self.settings = get_settings()
         self.provider = provider
         self.temperature = temperature
