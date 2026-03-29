@@ -1,8 +1,7 @@
-import json
-from pydantic import BaseModel, Field
 from langchain.agents import create_agent
 
 from client import LLMClient
+from agents.schemas import PlanResult, PlanStep
 from services import (
     get_weather, 
     get_pois, 
@@ -11,15 +10,6 @@ from services import (
     get_text_content, 
     tavily_search
 )
-
-
-class PlanStep(BaseModel):
-    step: int = Field(description="步骤编号")
-    task: str = Field(description="当前步骤的执行目标")
-
-
-class PlanResult(BaseModel):
-    steps: list[PlanStep] = Field(default_factory=list, description="规划出的步骤列表")
 
 
 plan_system_prompt = """
