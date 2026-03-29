@@ -214,4 +214,74 @@ class PlanExecuteAgent:
         return "\n".join([f"步骤 {step['step']}: {step['task']}\n结果: {step['result']}\n" for step in completed_steps])
 
 
-plan_execute_agent = PlanExecuteAgent()
+# plan_execute_agent = PlanExecuteAgent()
+
+
+"""======langgraph版本的PlanExecuteAgent实现======"""
+from typing import TypedDict
+from langgraph.graph import StateGraph, START, END
+
+
+# 创建节点agent实例
+_planner = Planer()
+_executor = Executor()
+_summarizer = Summarizer()
+
+
+# 1.定义状态
+class PlanExecuteState(TypedDict):
+    user_query: str
+    plan: PlanResult
+    current_step_index: int
+    completed_steps: list[dict]
+    final_result: str  # 最终输出结果
+
+
+# 2.定义节点
+async def plan_node(state: PlanExecuteState) -> dict:
+    plan = await _planner.plan(state["user_query"])
+
+    return {"plan": plan, "current_step_index": 0, "completed_steps": []}  # 初始步骤索引为0，已完成步骤列表为空
+
+async def execute_node(state: PlanExecuteState) -> dict:
+    current_step = state["plan"].steps[state["current_step_index"]]
+    result = await _executor.execute(
+        user_query=state["user_query"],
+        total_steps=len(state["plan"].steps),
+        recent_steps="\n".join([f"步骤 {step['step']}: {step['task']}\n结果: {step['result']}\n" for step in state["completed_steps"][-2:]]),
+        current_step=current_step
+    )
+    # 更新已完成步骤列表和当前步骤索引
+    completed_steps = state["completed_steps"] + [{"step": current_step.step, "task": current_step.task, "result": result}]
+    current_step_index = state["current_step_index"] + 1
+
+    return {"completed_steps": completed_steps, "current_step_index": current_step_index}
+
+async def summarize_node(state: PlanExecuteState) -> dict:
+    content = await _summarizer.summarize(
+        user_query=state["user_query"],
+        plan=state["plan"],
+        completed_steps="\n".join([f"步骤 {step['step']}: {step['task']}\n结果: {step['result']}\n" for step in state["completed_steps"]])
+    )
+
+    return {"final_result": content}
+
+# 3.定义边
+def execute_continue_edge(state: PlanExecuteState) -> str:
+    if state["current_step_index"] >= len(state["plan"].steps):
+        return "summarize"
+    else:
+        return "execute"
+
+# 4.构建状态图
+graph = StateGraph(PlanExecuteState)
+graph.add_node("plan", plan_node)
+graph.add_node("execute", execute_node)
+graph.add_node("summarize", summarize_node)
+graph.add_edge(START, "plan")
+graph.add_edge("plan", "execute")
+# 根据当前步骤索引决定是继续执行下一步骤还是进入总结阶段
+graph.add_conditional_edges("execute", execute_continue_edge)
+graph.add_edge("summarize", END)
+
+plan_execute_agent = graph.compile()

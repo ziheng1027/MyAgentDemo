@@ -158,8 +158,8 @@ class Reviser:
         )
     
     async def revise(
-            self, user_query: str, current_response: str, critique: Critique, 
-            suggestions: list[str], history_response: str
+            self, user_query: str, current_response: str, 
+            critique: Critique,  history_response: str
         ) -> str:
         """根据审查结果与建议修订回答"""
 
@@ -169,8 +169,8 @@ class Reviser:
                 "content": revise_query_template.format(
                     user_query=user_query, 
                     current_response=current_response, 
-                    critique=critique, 
-                    suggestions=suggestions, 
+                    critique=critique.critique, 
+                    suggestions=critique.suggestions, 
                     history_response=history_response
                 )
             }]
@@ -224,8 +224,7 @@ class ReflectionAgent:
             current_response = await self.reviser.revise(
                 user_query=user_query,
                 current_response=current_response,
-                critique=critique.critique,
-                suggestions=critique.suggestions,
+                critique=critique,
                 history_response=history_response
             )
             print(f"改进后的回答：{current_response}")
@@ -240,4 +239,74 @@ class ReflectionAgent:
         
         return current_response
 
-reflection_agent = ReflectionAgent()
+# reflection_agent = ReflectionAgent()
+
+
+
+"""======langgraph进行灵活声明式编排======"""
+from typing import TypedDict
+from langgraph.graph import StateGraph, START, END
+
+
+# 创建节点agent实例
+_drafter = Drafter()
+_reviewer = Reviewer()
+_reviser = Reviser()
+
+
+# 1.定义状态
+class ReflectionAgentState(TypedDict):
+    user_query: str
+    current_response: str
+    critique: Critique
+    history_responses: list[str]  # 历史回答记录
+    iteration: int  # 当前迭代次数，用于条件边判断
+    max_iterations: int  # 最大迭代次数，用于条件边判断
+
+# 2.定义节点
+async def draft_node(state: ReflectionAgentState) -> dict:
+    response = await _drafter.draft(state["user_query"])
+
+    return {"current_response": response, "iteration": 0}  # 初始迭代次数为0
+
+async def review_node(state: ReflectionAgentState) -> dict:
+    critique = await _reviewer.review(state["user_query"], state["current_response"])
+
+    return {"critique": critique}
+
+async def revise_node(state: ReflectionAgentState) -> dict:
+    # 添加历史回答记录
+    history_responses = state["history_responses"] + [state["current_response"]]
+
+    revised_response = await _reviser.revise(
+        user_query=state["user_query"],
+        current_response=state["current_response"],
+        critique=state["critique"],
+        history_response="\n\n".join(history_responses) or "暂无历史记录"
+    )
+
+    return {
+        "current_response": revised_response, 
+        "iteration": state["iteration"] + 1,    # 每次修订迭代次数加1
+        "history_responses": history_responses
+    }
+
+# 3.定义边
+def revise_continue_edge(state: ReflectionAgentState) -> str:
+    if state["critique"].is_satisfactory or state["iteration"] >= state["max_iterations"]:
+        return END
+    else:
+        return "reviser"
+
+# 4.构建状态图 -> 等价于ReflectionAgent.run()方法中的逻辑
+graph = StateGraph(ReflectionAgentState)
+graph.add_node("drafter", draft_node)
+graph.add_node("reviewer", review_node)
+graph.add_node("reviser", revise_node)
+graph.add_edge(START, "drafter")
+graph.add_edge("drafter", "reviewer")
+# 根据审查结果决定是继续修订还是结束
+graph.add_conditional_edges("reviewer", revise_continue_edge)
+graph.add_edge("reviser", "reviewer")
+
+reflection_agent = graph.compile()
